@@ -4,7 +4,7 @@ library(datasets)
 library(agricolae)
 library(multcomp)
 
-dataset <- read.csv("/home/giovani/Área de Trabalho/carpet.csv",h=T,
+dataset <- read.csv("carpet.csv",h=T,
                     col.names = c("durabilidade","tapete","composicao"))
 attach(dataset)
 dataset$tapete <- as.factor(dataset$tapete)
@@ -13,6 +13,8 @@ dataset$composicao <- as.factor(dataset$composicao)
 anovi <- aov(durabilidade~composicao, data=dataset)
 
 anovo <- aov(durabilidade~tapete, data=dataset)
+
+comparison <- scheffe.test(anovo,"tapete", group=T,console=T)  
 
 mcHSD <- glht(anovo,linfct=mcp(tapete="Tukey"))
 
