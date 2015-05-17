@@ -16,6 +16,20 @@ anovo <- aov(durabilidade~tapete, data=dataset)
 
 mcHSD <- glht(anovo,linfct=mcp(tapete="Tukey"))
 
+gl <- df.residual(anovo)
+
+MERes <- deviance(anovo)/gl
+
+bonfee <- HSD.test(durabilidade,tapete,gl,MERes, group=TRUE)
+
+contr <- rbind("1 - 2" = c(1, -1, 0, 0),
+               "1 - 3" = c(1, 0, -1, 0), 
+               "1 - 4" = c(1, 0, 0, -1),
+               "2 - 3" = c(0, 1, -1, 0),
+               "2 - 4" = c(0, 1, 0, -1),
+               "3 - 4" = c(0, 0, 1, -1))
+
+mcScheffe = glht(anovo,linfct=mcp(tapete=contr))
 
 servrer <- function(input,output){
   
@@ -39,8 +53,9 @@ servrer <- function(input,output){
   
   output$mpgPlot <- renderPlot({
     boxplot(as.formula(formulaText()),
-          data = dataset,
-          outline = input$outliers)
+            data = dataset,
+            outline = input$outliers,
+            col="skyblue",xlab="tratamentos")
   })
   
   formulaVerb <- reactive({
@@ -52,14 +67,34 @@ servrer <- function(input,output){
   })
   
   output$anoverb <-renderPrint({
-    summary(glht(anovo,linfct=mcp(tapete=formulaVerb())))
-  })
-   
-  output$plotgg <- renderPlot({
-    plot(confint(glht(anovo,linfct=mcp(tapete=formulaVerb())),level=0.95))
+    if(formulaVerb()=="Tukey"){
+      summary(glht(anovo,linfct=mcp(tapete="Tukey")))
+    }
+    else if(formulaVerb()=="Scheffe"){
+      comparison <- scheffe.test(anovo,"tapete", group=T,console=T)  
+      }
+    else if(formulaVerb()=="Bonferroni"){
+      bonfee
+    }
   })
   
-#   output$group <- renderPrint({
-#     summary()
-#   })
+  output$plotgg <- renderPlot({
+    if(formulaVerb()=="Tukey"){
+      plot(confint(mcHSD,level=0.95))      
+    }
+    else if(formulaVerb()=="Scheffe"){
+      bar.group(comparison$groups,horiz=T,xlim=c(0,20),
+                xlab="média dos tratamentos",
+                ylab="tratamentos",main="Grupos",
+                density=25,col="green",border="black")
+    }
+    else if(formulaVerb()=="Bonferroni"){
+      bar.group(bonfee$groups,horiz=T,xlim=c(0,20),
+                xlab="média dos tratamentos",
+                ylab="tratamentos",main="Grupos",
+                density=25,col="blue",border="black")
+    }
+  })
+  
+  
 }
